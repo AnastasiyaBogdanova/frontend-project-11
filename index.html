@@ -17,21 +17,24 @@
       </header>
 
       <main>
-        <form id="rss-form" class="flex flex-col gap-3 sm:flex-row" novalidate>
-          <label for="rss-url" class="sr-only">URL RSS-потока</label>
-          <input
-            id="rss-url"
-            name="url"
-            type="url"
-            inputmode="url"
-            autocomplete="url"
-            required
-            placeholder="https://example.com/rss.xml"
-            class="block w-full rounded-md border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
-          />
+        <form id="rss-form" class="flex flex-col gap-3 sm:flex-row sm:items-end" novalidate>
+          <div class="flex-1">
+            <label for="rss-url" class="mb-1 block text-sm font-medium text-slate-700">
+              Ссылка RSS
+            </label>
+            <input
+              id="rss-url"
+              name="url"
+              type="text"
+              inputmode="url"
+              autocomplete="url"
+              placeholder="https://example.com/rss.xml"
+              class="block w-full rounded-md border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+            />
+          </div>
           <button
             type="submit"
-            class="inline-flex justify-center rounded-md bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            class="inline-flex h-9 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Добавить
           </button>

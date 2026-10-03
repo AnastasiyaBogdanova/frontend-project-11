@@ -1,9 +1,18 @@
 import './style.css';
-
-const form = document.querySelector('#rss-form');
+import { addFeed } from './model/state.js';
+import { form, input } from './view/render.js';
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
-  // Логика добавления потока будет реализована на следующих шагах.
-  // Здесь и далее — только промисы, никаких async/await.
+
+  const url = input.value.trim();
+
+  addFeed(url).catch((err) => {
+    // Ошибка уже записана в состояние внутри addFeed,
+    // здесь только логируем для отладки.
+    console.error('Feed validation failed:', err.error);
+  });
 });
+
+// Фокус на инпут при загрузке страницы
+input.focus();
