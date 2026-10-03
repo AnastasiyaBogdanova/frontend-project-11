@@ -1,56 +1,83 @@
 import { proxy } from 'valtio/vanilla';
 import * as yup from 'yup';
+import loadRss from '../services/loader.js';
+import parseRss from '../services/parser.js';
 
-// Схема валидации. Сообщения задаются через yup.setLocale() (см. src/i18n.js),
-// поэтому здесь мы их не дублируем.
+// Схема валидации. Тексты задаются через yup.setLocale() (см. src/i18n.js).
 const feedUrlSchema = yup.string().trim().required().url();
 
-// Реактивное состояние приложения.
-// В state хранится КОД ошибки, а не её текст — текст получаем через i18next.
+// Нормализованное состояние:
+// feeds.ids — порядок, feeds.entities — данные по id
+// posts.ids — порядок, posts.entities — данные по id
 const state = proxy({
+  feeds: { ids: [], entities: {} },
+  posts: { ids: [], entities: {} },
   rssForm: {
     url: '',
-    errorCode: null,   // 'required' | 'url' | null
+    errorCode: null,
     valid: false,
     loading: false,
-    feeds: [],
   },
 });
 
-// Валидация одной ссылки с учётом дублей.
-// resolve -> { valid: true }
-// reject  -> { valid: false, errorCode: 'required' | 'url' }
-const validateFeedUrl = (url) => {
-  const isDuplicate = state.rssForm.feeds.some((feed) => feed.url === url);
-  if (isDuplicate) {
-    // По ТЗ дубли показывают то же сообщение, что и невалидный URL
-    return Promise.reject({ valid: false, errorCode: 'url' });
-  }
+// Проверка дублей по URL среди уже добавленных фидов.
+const isDuplicate = (url) =>
+  state.feeds.ids.some((id) => state.feeds.entities[id].url === url);
 
-  return feedUrlSchema
-    .validate(url)
-    .then(() => ({ valid: true }))
-    .catch((err) => {
-      // err.type у yup — это 'required' | 'url' | ...
-      throw { valid: false, errorCode: err.type };
-    });
+// Валидация URL: resolve -> undefined, reject -> { errorCode }
+const validateUrl = (url) => {
+  if (isDuplicate(url)) {
+    return Promise.reject({ errorCode: 'url' });
+  }
+  return feedUrlSchema.validate(url).catch((err) => {
+    throw { errorCode: err.type }; // 'required' | 'url'
+  });
 };
 
+// Добавляем фид и его посты в состояние.
+const appendFeed = (url, parsed) => {
+  const feedId = crypto.randomUUID();
+
+  state.feeds.entities[feedId] = {
+    id: feedId,
+    url,
+    title: parsed.title,
+    description: parsed.description,
+  };
+  state.feeds.ids.unshift(feedId);
+
+  parsed.posts.forEach((post) => {
+    const postId = crypto.randomUUID();
+    state.posts.entities[postId] = {
+      id: postId,
+      feedId,
+      title: post.title,
+      link: post.link,
+    };
+    state.posts.ids.push(postId);
+  });
+};
+
+// Пайплайн: валидация -> загрузка -> парсинг -> добавление.
+// Всё на промисах, без async/await.
 const addFeed = (url) => {
   state.rssForm.url = url;
   state.rssForm.errorCode = null;
   state.rssForm.valid = false;
   state.rssForm.loading = true;
 
-  return validateFeedUrl(url)
-    .then(() => {
-      state.rssForm.feeds.push({ url });
+  return validateUrl(url)
+    .then(() => loadRss(url))
+    .then((xmlString) => parseRss(xmlString))
+    .then((parsed) => {
+      appendFeed(url, parsed);
       state.rssForm.valid = true;
-      state.rssForm.errorCode = null;
     })
     .catch((err) => {
-      state.rssForm.valid = false;
-      state.rssForm.errorCode = err.errorCode;
+      // Приоритет: код от валидатора, иначе — от парсинга, иначе — сеть.
+      const errorCode = err.errorCode
+        ?? (err.message === 'notRss' ? 'notRss' : 'network');
+      state.rssForm.errorCode = errorCode;
       throw err;
     })
     .finally(() => {
@@ -63,4 +90,4 @@ const resetValid = () => {
   state.rssForm.valid = false;
 };
 
-export { state, addFeed, validateFeedUrl, resetValid };
+export { state, addFeed, resetValid };

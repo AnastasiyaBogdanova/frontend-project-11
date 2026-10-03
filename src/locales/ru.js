@@ -10,12 +10,14 @@ export default {
       submit: 'Добавить',
     },
     sections: {
-      feeds: 'Потоки',
+      feeds: 'Фиды',
       posts: 'Посты',
     },
     errors: {
       required: 'Не должно быть пустым',
       url: 'Ссылка должна быть валидным URL',
+      network: 'Ошибка сети',
+      notRss: 'Ресурс не содержит валидный RSS',
     },
   },
 };
