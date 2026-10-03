@@ -6,9 +6,7 @@ import parseRss from '../services/parser.js';
 // Схема валидации. Тексты задаются через yup.setLocale() (см. src/i18n.js).
 const feedUrlSchema = yup.string().trim().required().url();
 
-// Нормализованное состояние:
-// feeds.ids — порядок, feeds.entities — данные по id
-// posts.ids — порядок, posts.entities — данные по id
+// Нормализованное состояние.
 const state = proxy({
   feeds: { ids: [], entities: {} },
   posts: { ids: [], entities: {} },
@@ -20,33 +18,22 @@ const state = proxy({
   },
 });
 
-// Проверка дублей по URL среди уже добавленных фидов.
 const isDuplicate = (url) =>
   state.feeds.ids.some((id) => state.feeds.entities[id].url === url);
 
-// Валидация URL: resolve -> undefined, reject -> { errorCode }
 const validateUrl = (url) => {
   if (isDuplicate(url)) {
     return Promise.reject({ errorCode: 'url' });
   }
   return feedUrlSchema.validate(url).catch((err) => {
-    throw { errorCode: err.type }; // 'required' | 'url'
+    throw { errorCode: err.type };
   });
 };
 
-// Добавляем фид и его посты в состояние.
-const appendFeed = (url, parsed) => {
-  const feedId = crypto.randomUUID();
-
-  state.feeds.entities[feedId] = {
-    id: feedId,
-    url,
-    title: parsed.title,
-    description: parsed.description,
-  };
-  state.feeds.ids.unshift(feedId);
-
-  parsed.posts.forEach((post) => {
+// Добавить посты фида. Используется и при первичной загрузке, и при
+// фоновом обновлении (см. model/updater.js).
+const appendPosts = (feedId, posts) => {
+  posts.forEach((post) => {
     const postId = crypto.randomUUID();
     state.posts.entities[postId] = {
       id: postId,
@@ -58,8 +45,21 @@ const appendFeed = (url, parsed) => {
   });
 };
 
+const appendFeed = (url, parsed) => {
+  const feedId = crypto.randomUUID();
+
+  state.feeds.entities[feedId] = {
+    id: feedId,
+    url,
+    title: parsed.title,
+    description: parsed.description,
+  };
+  state.feeds.ids.unshift(feedId);
+
+  appendPosts(feedId, parsed.posts);
+};
+
 // Пайплайн: валидация -> загрузка -> парсинг -> добавление.
-// Всё на промисах, без async/await.
 const addFeed = (url) => {
   state.rssForm.url = url;
   state.rssForm.errorCode = null;
@@ -74,7 +74,6 @@ const addFeed = (url) => {
       state.rssForm.valid = true;
     })
     .catch((err) => {
-      // Приоритет: код от валидатора, иначе — от парсинга, иначе — сеть.
       const errorCode = err.errorCode
         ?? (err.message === 'notRss' ? 'notRss' : 'network');
       state.rssForm.errorCode = errorCode;
@@ -85,9 +84,8 @@ const addFeed = (url) => {
     });
 };
 
-// Сброс флага valid после того, как View его обработал.
 const resetValid = () => {
   state.rssForm.valid = false;
 };
 
-export { state, addFeed, resetValid };
+export { state, addFeed, appendPosts, resetValid };

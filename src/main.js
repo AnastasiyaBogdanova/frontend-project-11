@@ -1,6 +1,7 @@
 import './style.css';
 import { i18nReady } from './i18n.js';
 import { addFeed } from './model/state.js';
+import startUpdatesScheduler from './model/updater.js';
 import {
   form,
   input,
@@ -16,6 +17,7 @@ i18nReady.then(() => {
   subscribeFeeds();
   subscribePosts();
   input.focus();
+  startUpdatesScheduler();
 });
 
 form.addEventListener('submit', (event) => {
