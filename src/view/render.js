@@ -1,9 +1,10 @@
 import { subscribe } from 'valtio/vanilla';
+import i18next from '../i18n.js';
 import { state, resetValid } from '../model/state.js';
 
-// Ссылки на DOM-элементы
 const form = document.querySelector('#rss-form');
 const input = document.querySelector('#rss-url');
+const errorEl = document.querySelector('#rss-error');
 const submitButton = form.querySelector('button[type="submit"]');
 
 const setErrorStyle = (hasError) => {
@@ -25,20 +26,38 @@ const setLoadingStyle = (isLoading) => {
   }
 };
 
+const setErrorText = (errorCode) => {
+  errorEl.textContent = errorCode ? i18next.t(`errors.${errorCode}`) : '';
+};
+
 // Подписка на изменения rssForm.
-// Valtio сам вызывает коллбэк при любых мутациях состояния.
-subscribe(state.rssForm, () => {
-  setErrorStyle(Boolean(state.rssForm.error));
-  setLoadingStyle(state.rssForm.loading);
+const subscribeForm = () => {
+  subscribe(state.rssForm, () => {
+    const { errorCode, loading, valid } = state.rssForm;
 
-  // Очистка инпута и фокус после успешного добавления
-  if (state.rssForm.valid) {
-    input.value = '';
-    input.focus();
-    // Сбрасываем флаг, чтобы очистка не сработала повторно
-    // при следующей мутации состояния.
-    resetValid();
-  }
-});
+    setErrorStyle(Boolean(errorCode));
+    setErrorText(errorCode);
+    setLoadingStyle(loading);
 
-export { form, input };
+    if (valid) {
+      input.value = '';
+      input.focus();
+      resetValid();
+    }
+  });
+};
+
+// Рендер статичных текстов интерфейса из i18next.
+const renderStaticTexts = () => {
+  document.title = i18next.t('app.title');
+
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = i18next.t(el.dataset.i18n);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    el.setAttribute('placeholder', i18next.t(el.dataset.i18nPlaceholder));
+  });
+};
+
+export { form, input, subscribeForm, renderStaticTexts };

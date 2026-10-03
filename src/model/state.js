@@ -1,53 +1,44 @@
 import { proxy } from 'valtio/vanilla';
 import * as yup from 'yup';
 
-// Схема валидации через yup.
-// Тексты ошибок строго совпадают с требованиями:
-// — пустое поле: "Не должно быть пустым"
-// — невалидный URL: "Ссылка должна быть валидным URL"
-const feedUrlSchema = yup
-  .string()
-  .trim()
-  .required('Не должно быть пустым')
-  .url('Ссылка должна быть валидным URL');
+// Схема валидации. Сообщения задаются через yup.setLocale() (см. src/i18n.js),
+// поэтому здесь мы их не дублируем.
+const feedUrlSchema = yup.string().trim().required().url();
 
 // Реактивное состояние приложения.
+// В state хранится КОД ошибки, а не её текст — текст получаем через i18next.
 const state = proxy({
   rssForm: {
     url: '',
-    error: null,       // строка с текстом ошибки или null
-    valid: false,      // прошла ли последняя валидация
-    loading: false,    // идёт ли валидация/отправка (для блокировки кнопки)
-    feeds: [],         // список добавленных фидов (для проверки дублей)
+    errorCode: null,   // 'required' | 'url' | null
+    valid: false,
+    loading: false,
+    feeds: [],
   },
 });
 
 // Валидация одной ссылки с учётом дублей.
 // resolve -> { valid: true }
-// reject  -> { valid: false, error: 'текст' }
+// reject  -> { valid: false, errorCode: 'required' | 'url' }
 const validateFeedUrl = (url) => {
   const isDuplicate = state.rssForm.feeds.some((feed) => feed.url === url);
   if (isDuplicate) {
-    return Promise.reject({
-      valid: false,
-      error: 'Ссылка должна быть валидным URL',
-    });
+    // По ТЗ дубли показывают то же сообщение, что и невалидный URL
+    return Promise.reject({ valid: false, errorCode: 'url' });
   }
 
-  // Асинхронная валидация yup (работает на промисах)
   return feedUrlSchema
     .validate(url)
     .then(() => ({ valid: true }))
     .catch((err) => {
-      throw { valid: false, error: err.errors[0] };
+      // err.type у yup — это 'required' | 'url' | ...
+      throw { valid: false, errorCode: err.type };
     });
 };
 
-// Функция добавления потока. Пока только валидирует и сохраняет.
-// Сетевой запрос добавим на следующем шаге (Ajax).
 const addFeed = (url) => {
   state.rssForm.url = url;
-  state.rssForm.error = null;
+  state.rssForm.errorCode = null;
   state.rssForm.valid = false;
   state.rssForm.loading = true;
 
@@ -55,11 +46,11 @@ const addFeed = (url) => {
     .then(() => {
       state.rssForm.feeds.push({ url });
       state.rssForm.valid = true;
-      state.rssForm.error = null;
+      state.rssForm.errorCode = null;
     })
     .catch((err) => {
       state.rssForm.valid = false;
-      state.rssForm.error = err.error;
+      state.rssForm.errorCode = err.errorCode;
       throw err;
     })
     .finally(() => {
@@ -68,7 +59,6 @@ const addFeed = (url) => {
 };
 
 // Сброс флага valid после того, как View его обработал.
-// Это предотвращает повторную очистку инпута при последующих мутациях.
 const resetValid = () => {
   state.rssForm.valid = false;
 };

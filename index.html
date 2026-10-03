@@ -8,45 +8,45 @@
   <body class="min-h-screen bg-slate-100 text-slate-800 antialiased">
     <div class="container mx-auto max-w-3xl px-4 py-10">
       <header class="mb-8">
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900">
-          RSS Reader
-        </h1>
-        <p class="mt-2 text-slate-500">
-          Агрегатор RSS-потоков: добавьте ссылку на ленту и читайте новости в одном месте.
-        </p>
+        <h1 data-i18n="app.title" class="text-3xl font-bold tracking-tight text-slate-900"></h1>
+        <p data-i18n="app.subtitle" class="mt-2 text-slate-500"></p>
       </header>
 
       <main>
-        <form id="rss-form" class="flex flex-col gap-3 sm:flex-row sm:items-end" novalidate>
-          <div class="flex-1">
-            <label for="rss-url" class="mb-1 block text-sm font-medium text-slate-700">
-              Ссылка RSS
-            </label>
-            <input
-              id="rss-url"
-              name="url"
-              type="text"
-              inputmode="url"
-              autocomplete="url"
-              placeholder="https://example.com/rss.xml"
-              class="block w-full rounded-md border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
-            />
+        <form id="rss-form" class="space-y-1" novalidate>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div class="flex-1">
+              <label
+                for="rss-url"
+                data-i18n="form.label"
+                class="mb-1 block text-sm font-medium text-slate-700"
+              ></label>
+              <input
+                id="rss-url"
+                name="url"
+                type="text"
+                inputmode="url"
+                autocomplete="url"
+                data-i18n-placeholder="form.placeholder"
+                class="block w-full rounded-md border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+              />
+            </div>
+            <button
+              type="submit"
+              data-i18n="form.submit"
+              class="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            ></button>
           </div>
-          <button
-            type="submit"
-            class="inline-flex h-9 items-center justify-center rounded-md bg-sky-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Добавить
-          </button>
+          <p id="rss-error" class="h-5 text-sm text-red-600"></p>
         </form>
 
         <section id="feeds" class="mt-10 hidden">
-          <h2 class="text-xl font-semibold text-slate-900">Потоки</h2>
+          <h2 data-i18n="sections.feeds" class="text-xl font-semibold text-slate-900"></h2>
           <ul id="feeds-list" class="mt-3 space-y-2"></ul>
         </section>
 
         <section id="posts" class="mt-10 hidden">
-          <h2 class="text-xl font-semibold text-slate-900">Посты</h2>
+          <h2 data-i18n="sections.posts" class="text-xl font-semibold text-slate-900"></h2>
           <ul id="posts-list" class="mt-3 space-y-2"></ul>
         </section>
       </main>
