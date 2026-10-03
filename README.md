@@ -11,7 +11,7 @@
 
 ## Демо
 
-🔗 https://frontend-project-11-<ваш-суффикс>.vercel.app
+🔗 https://frontend-project-11-one-eta.vercel.app
 
 ## Стек
 
