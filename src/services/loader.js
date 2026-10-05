@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-const PROXY_URL = 'https://allorigins.hexlet.app/raw';
+const PROXY_URL = 'https://allorigins.hexlet.app/get';
 
 const loadRss = (url) => {
-  const proxyUrl = `${PROXY_URL}?url=${encodeURIComponent(url)}&disableCache=true`;
+  const proxyUrl = `${PROXY_URL}?disableCache=true&url=${encodeURIComponent(url)}`;
 
   return axios
     .get(proxyUrl)
-    .then((response) => response.data);
+    .then((response) => response.data.contents);
 };
 
 export default loadRss;
