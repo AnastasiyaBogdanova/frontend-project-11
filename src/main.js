@@ -8,6 +8,9 @@ import {
   subscribeForm,
   subscribeFeeds,
   subscribePosts,
+  subscribeModal,
+  bindPostsEvents,
+  bindModalEvents,
   renderStaticTexts,
 } from './view/render.js';
 
@@ -16,6 +19,9 @@ i18nReady.then(() => {
   subscribeForm();
   subscribeFeeds();
   subscribePosts();
+  subscribeModal();
+  bindPostsEvents();
+  bindModalEvents();
   input.focus();
   startUpdatesScheduler();
 });

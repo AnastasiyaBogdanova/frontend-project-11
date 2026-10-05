@@ -13,6 +13,13 @@ export default {
       feeds: 'Фиды',
       posts: 'Посты',
     },
+    posts: {
+      preview: 'Просмотр',
+    },
+    modal: {
+      close: 'Закрыть',
+      readMore: 'Читать полностью',
+    },
     errors: {
       required: 'Не должно быть пустым',
       url: 'Ссылка должна быть валидным URL',

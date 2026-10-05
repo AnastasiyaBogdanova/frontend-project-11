@@ -3,13 +3,14 @@ import * as yup from 'yup';
 import loadRss from '../services/loader.js';
 import parseRss from '../services/parser.js';
 
-// Схема валидации. Тексты задаются через yup.setLocale() (см. src/i18n.js).
 const feedUrlSchema = yup.string().trim().required().url();
 
-// Нормализованное состояние.
 const state = proxy({
   feeds: { ids: [], entities: {} },
   posts: { ids: [], entities: {} },
+  ui: {
+    modalPostId: null,   // id поста, открытого в модалке, или null
+  },
   rssForm: {
     url: '',
     errorCode: null,
@@ -30,8 +31,7 @@ const validateUrl = (url) => {
   });
 };
 
-// Добавить посты фида. Используется и при первичной загрузке, и при
-// фоновом обновлении (см. model/updater.js).
+// Добавить посты фида. Новые посты всегда seen: false.
 const appendPosts = (feedId, posts) => {
   posts.forEach((post) => {
     const postId = crypto.randomUUID();
@@ -40,6 +40,8 @@ const appendPosts = (feedId, posts) => {
       feedId,
       title: post.title,
       link: post.link,
+      description: post.description,
+      seen: false,
     };
     state.posts.ids.push(postId);
   });
@@ -47,7 +49,6 @@ const appendPosts = (feedId, posts) => {
 
 const appendFeed = (url, parsed) => {
   const feedId = crypto.randomUUID();
-
   state.feeds.entities[feedId] = {
     id: feedId,
     url,
@@ -55,11 +56,9 @@ const appendFeed = (url, parsed) => {
     description: parsed.description,
   };
   state.feeds.ids.unshift(feedId);
-
   appendPosts(feedId, parsed.posts);
 };
 
-// Пайплайн: валидация -> загрузка -> парсинг -> добавление.
 const addFeed = (url) => {
   state.rssForm.url = url;
   state.rssForm.errorCode = null;
@@ -88,4 +87,23 @@ const resetValid = () => {
   state.rssForm.valid = false;
 };
 
-export { state, addFeed, appendPosts, resetValid };
+// Помечаем пост прочитанным и открываем модалку.
+// Мутируем ИМЕННО entity из state — так Valtio увидит изменение.
+const openPostModal = (postId) => {
+  state.posts.entities[postId].seen = true;
+  state.ui.modalPostId = postId;
+};
+
+// Закрываем модалку — состояние очищается, View реагирует.
+const closePostModal = () => {
+  state.ui.modalPostId = null;
+};
+
+export {
+  state,
+  addFeed,
+  appendPosts,
+  resetValid,
+  openPostModal,
+  closePostModal,
+};

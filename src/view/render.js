@@ -1,7 +1,13 @@
 import { subscribe } from 'valtio/vanilla';
 import i18next from '../i18n.js';
-import { state, resetValid } from '../model/state.js';
+import {
+  state,
+  resetValid,
+  openPostModal,
+  closePostModal,
+} from '../model/state.js';
 
+// --- DOM-элементы формы и списков ---
 const form = document.querySelector('#rss-form');
 const input = document.querySelector('#rss-url');
 const errorEl = document.querySelector('#rss-error');
@@ -11,6 +17,14 @@ const feedsList = document.querySelector('#feeds-list');
 const postsSection = document.querySelector('#posts');
 const postsList = document.querySelector('#posts-list');
 
+// --- DOM-элементы модалки ---
+const modal = document.querySelector('#post-modal');
+const modalTitle = document.querySelector('#modal-title');
+const modalDescription = document.querySelector('#modal-description');
+const modalLink = document.querySelector('#modal-link');
+const modalCloseButton = document.querySelector('#modal-close');
+
+// --- Утилиты стилей формы ---
 const setErrorStyle = (hasError) => {
   if (hasError) {
     input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
@@ -23,11 +37,8 @@ const setErrorStyle = (hasError) => {
 
 const setLoadingStyle = (isLoading) => {
   submitButton.disabled = isLoading;
-  if (isLoading) {
-    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-  } else {
-    submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
-  }
+  submitButton.classList.toggle('opacity-50', isLoading);
+  submitButton.classList.toggle('cursor-not-allowed', isLoading);
 };
 
 const setErrorText = (errorCode) => {
@@ -60,6 +71,8 @@ const renderFeeds = () => {
 };
 
 // --- Рендер постов ---
+// data-seen на ссылке поста — обязательный атрибут для автотестов.
+// font-bold у новых, font-normal у прочитанных.
 const renderPosts = () => {
   postsList.innerHTML = '';
 
@@ -67,23 +80,83 @@ const renderPosts = () => {
     const post = state.posts.entities[id];
 
     const li = document.createElement('li');
-    li.className = 'rounded-md border border-slate-200 bg-white px-4 py-2 shadow-sm';
+    li.className = 'flex items-start gap-2 rounded-md border border-slate-200 bg-white px-4 py-2 shadow-sm';
 
-    const a = document.createElement('a');
-    a.href = post.link;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.className = 'text-sky-600 hover:underline';
-    a.textContent = post.title;
+    const link = document.createElement('a');
+    link.href = post.link;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.dataset.seen = String(post.seen);
+    link.className = [
+      'flex-1',
+      'text-sm',
+      'text-sky-600',
+      'hover:underline',
+      post.seen ? 'font-normal' : 'font-bold',
+    ].join(' ');
+    link.textContent = post.title;
 
-    li.append(a);
+    const previewButton = document.createElement('button');
+    previewButton.type = 'button';
+    previewButton.dataset.action = 'preview';
+    previewButton.dataset.postId = post.id;
+    previewButton.className =
+      'shrink-0 rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50';
+    previewButton.textContent = i18next.t('posts.preview');
+
+    li.append(link, previewButton);
     postsList.append(li);
   });
 
   postsSection.classList.toggle('hidden', state.posts.ids.length === 0);
 };
 
-// Подписка на rssForm: ошибки, loading, очистка.
+// --- Обработчик кликов по постам (делегирование) ---
+// Слушатель вешаем один раз на контейнер, а не на каждую кнопку,
+// потому что список полностью перерисовывается.
+const bindPostsEvents = () => {
+  postsList.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action="preview"]');
+    if (!button) return;
+    openPostModal(button.dataset.postId);
+  });
+};
+
+// --- Синхронизация модалки с состоянием ---
+const subscribeModal = () => {
+  subscribe(state.ui, () => {
+    const { modalPostId } = state.ui;
+
+    if (modalPostId) {
+      const post = state.posts.entities[modalPostId];
+      modalTitle.textContent = post.title;
+      modalDescription.textContent = post.description;
+      modalLink.href = post.link;
+
+      if (!modal.open) {
+        modal.showModal();
+      }
+    } else if (modal.open) {
+      modal.close();
+    }
+  });
+};
+
+// --- События модалки ---
+const bindModalEvents = () => {
+  modalCloseButton.addEventListener('click', () => {
+    closePostModal();
+  });
+
+  // Закрытие по Esc или любым другим способом — синхронизируем состояние.
+  modal.addEventListener('close', () => {
+    if (state.ui.modalPostId !== null) {
+      closePostModal();
+    }
+  });
+};
+
+// --- Подписка на форму ---
 const subscribeForm = () => {
   subscribe(state.rssForm, () => {
     const { errorCode, loading, valid } = state.rssForm;
@@ -100,11 +173,10 @@ const subscribeForm = () => {
   });
 };
 
-// Подписки на данные: перерисовываем списки при любом изменении.
 const subscribeFeeds = () => subscribe(state.feeds, renderFeeds);
 const subscribePosts = () => subscribe(state.posts, renderPosts);
 
-// Рендер статичных текстов интерфейса из i18next.
+// --- Статичные тексты из i18next ---
 const renderStaticTexts = () => {
   document.title = i18next.t('app.title');
 
@@ -123,5 +195,8 @@ export {
   subscribeForm,
   subscribeFeeds,
   subscribePosts,
+  subscribeModal,
+  bindPostsEvents,
+  bindModalEvents,
   renderStaticTexts,
 };

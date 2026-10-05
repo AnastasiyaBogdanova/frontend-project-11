@@ -1,5 +1,4 @@
-// Чистая функция: принимает XML-строку, возвращает объект с данными фида
-// (или выбрасывает Error('notRss') при проблемах парсинга).
+// Чистая функция: XML-строка -> объект фида с постами.
 const getText = (parent, tag) =>
   parent.querySelector(tag)?.textContent?.trim() ?? '';
 
@@ -7,7 +6,6 @@ const parseRss = (xmlString) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, 'application/xml');
 
-  // DOMParser не бросает исключение, а кладёт <parsererror> в документ
   if (doc.querySelector('parsererror')) {
     throw new Error('notRss');
   }
@@ -23,6 +21,7 @@ const parseRss = (xmlString) => {
   const posts = [...channel.querySelectorAll('item')].map((item) => ({
     title: getText(item, 'title'),
     link: getText(item, 'link'),
+    description: getText(item, 'description'),
   }));
 
   return { title, description, posts };
