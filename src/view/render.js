@@ -7,24 +7,21 @@ import {
   closePostModal,
 } from '../model/state.js';
 
-// --- DOM-элементы формы и списков ---
 const form = document.querySelector('#rss-form');
 const input = document.querySelector('#rss-url');
-const errorEl = document.querySelector('#rss-error');
+const feedbackEl = document.querySelector('#rss-feedback');
 const submitButton = form.querySelector('button[type="submit"]');
 const feedsSection = document.querySelector('#feeds');
 const feedsList = document.querySelector('#feeds-list');
 const postsSection = document.querySelector('#posts');
 const postsList = document.querySelector('#posts-list');
 
-// --- DOM-элементы модалки ---
 const modal = document.querySelector('#post-modal');
 const modalTitle = document.querySelector('#modal-title');
 const modalDescription = document.querySelector('#modal-description');
 const modalLink = document.querySelector('#modal-link');
 const modalCloseButton = document.querySelector('#modal-close');
 
-// --- Утилиты стилей формы ---
 const setErrorStyle = (hasError) => {
   if (hasError) {
     input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
@@ -41,11 +38,18 @@ const setLoadingStyle = (isLoading) => {
   submitButton.classList.toggle('cursor-not-allowed', isLoading);
 };
 
-const setErrorText = (errorCode) => {
-  errorEl.textContent = errorCode ? i18next.t(`errors.${errorCode}`) : '';
+const setFeedback = (status, messageCode) => {
+  feedbackEl.classList.remove('text-red-600', 'text-green-600');
+
+  if (!messageCode) {
+    feedbackEl.textContent = '';
+    return;
+  }
+
+  feedbackEl.textContent = i18next.t(`messages.${messageCode}`);
+  feedbackEl.classList.add(status === 'success' ? 'text-green-600' : 'text-red-600');
 };
 
-// --- Рендер фидов ---
 const renderFeeds = () => {
   feedsList.innerHTML = '';
 
@@ -70,9 +74,6 @@ const renderFeeds = () => {
   feedsSection.classList.toggle('hidden', state.feeds.ids.length === 0);
 };
 
-// --- Рендер постов ---
-// data-seen на ссылке поста — обязательный атрибут для автотестов.
-// font-bold у новых, font-normal у прочитанных.
 const renderPosts = () => {
   postsList.innerHTML = '';
 
@@ -111,9 +112,6 @@ const renderPosts = () => {
   postsSection.classList.toggle('hidden', state.posts.ids.length === 0);
 };
 
-// --- Обработчик кликов по постам (делегирование) ---
-// Слушатель вешаем один раз на контейнер, а не на каждую кнопку,
-// потому что список полностью перерисовывается.
 const bindPostsEvents = () => {
   postsList.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action="preview"]');
@@ -122,7 +120,6 @@ const bindPostsEvents = () => {
   });
 };
 
-// --- Синхронизация модалки с состоянием ---
 const subscribeModal = () => {
   subscribe(state.ui, () => {
     const { modalPostId } = state.ui;
@@ -142,13 +139,11 @@ const subscribeModal = () => {
   });
 };
 
-// --- События модалки ---
 const bindModalEvents = () => {
   modalCloseButton.addEventListener('click', () => {
     closePostModal();
   });
 
-  // Закрытие по Esc или любым другим способом — синхронизируем состояние.
   modal.addEventListener('close', () => {
     if (state.ui.modalPostId !== null) {
       closePostModal();
@@ -156,13 +151,12 @@ const bindModalEvents = () => {
   });
 };
 
-// --- Подписка на форму ---
 const subscribeForm = () => {
   subscribe(state.rssForm, () => {
-    const { errorCode, loading, valid } = state.rssForm;
+    const { status, messageCode, loading, valid } = state.rssForm;
 
-    setErrorStyle(Boolean(errorCode));
-    setErrorText(errorCode);
+    setErrorStyle(status === 'error');
+    setFeedback(status, messageCode);
     setLoadingStyle(loading);
 
     if (valid) {
@@ -176,7 +170,6 @@ const subscribeForm = () => {
 const subscribeFeeds = () => subscribe(state.feeds, renderFeeds);
 const subscribePosts = () => subscribe(state.posts, renderPosts);
 
-// --- Статичные тексты из i18next ---
 const renderStaticTexts = () => {
   document.title = i18next.t('app.title');
 

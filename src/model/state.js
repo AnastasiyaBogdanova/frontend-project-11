@@ -9,11 +9,12 @@ const state = proxy({
   feeds: { ids: [], entities: {} },
   posts: { ids: [], entities: {} },
   ui: {
-    modalPostId: null,   // id поста, открытого в модалке, или null
+    modalPostId: null,
   },
   rssForm: {
     url: '',
-    errorCode: null,
+    status: null,
+    messageCode: null,
     valid: false,
     loading: false,
   },
@@ -24,14 +25,13 @@ const isDuplicate = (url) =>
 
 const validateUrl = (url) => {
   if (isDuplicate(url)) {
-    return Promise.reject({ errorCode: 'url' });
+    return Promise.reject({ messageCode: 'duplicate' });
   }
   return feedUrlSchema.validate(url).catch((err) => {
-    throw { errorCode: err.type };
+    throw { messageCode: err.type };
   });
 };
 
-// Добавить посты фида. Новые посты всегда seen: false.
 const appendPosts = (feedId, posts) => {
   posts.forEach((post) => {
     const postId = crypto.randomUUID();
@@ -61,7 +61,8 @@ const appendFeed = (url, parsed) => {
 
 const addFeed = (url) => {
   state.rssForm.url = url;
-  state.rssForm.errorCode = null;
+  state.rssForm.status = null;
+  state.rssForm.messageCode = null;
   state.rssForm.valid = false;
   state.rssForm.loading = true;
 
@@ -70,12 +71,15 @@ const addFeed = (url) => {
     .then((xmlString) => parseRss(xmlString))
     .then((parsed) => {
       appendFeed(url, parsed);
+      state.rssForm.status = 'success';
+      state.rssForm.messageCode = 'success';
       state.rssForm.valid = true;
     })
     .catch((err) => {
-      const errorCode = err.errorCode
+      const messageCode = err.messageCode
         ?? (err.message === 'notRss' ? 'notRss' : 'network');
-      state.rssForm.errorCode = errorCode;
+      state.rssForm.status = 'error';
+      state.rssForm.messageCode = messageCode;
       throw err;
     })
     .finally(() => {
@@ -87,14 +91,11 @@ const resetValid = () => {
   state.rssForm.valid = false;
 };
 
-// Помечаем пост прочитанным и открываем модалку.
-// Мутируем ИМЕННО entity из state — так Valtio увидит изменение.
 const openPostModal = (postId) => {
   state.posts.entities[postId].seen = true;
   state.ui.modalPostId = postId;
 };
 
-// Закрываем модалку — состояние очищается, View реагирует.
 const closePostModal = () => {
   state.ui.modalPostId = null;
 };

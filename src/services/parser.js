@@ -1,4 +1,3 @@
-// Чистая функция: XML-строка -> объект фида с постами.
 const getText = (parent, tag) =>
   parent.querySelector(tag)?.textContent?.trim() ?? '';
 

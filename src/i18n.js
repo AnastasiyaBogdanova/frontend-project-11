@@ -2,8 +2,6 @@ import i18next from 'i18next';
 import * as yup from 'yup';
 import ru from './locales/ru.js';
 
-// Инициализируем i18next. Ресурсы переданы inline, поэтому init
-// разрешается практически мгновенно.
 const i18nReady = i18next
   .init({
     lng: 'ru',
@@ -15,15 +13,9 @@ const i18nReady = i18next
     },
   })
   .then(() => {
-    // Связываем yup с i18next: все сообщения валидации
-    // теперь приходят из ресурсных файлов.
     yup.setLocale({
-      mixed: {
-        required: i18next.t('errors.required'),
-      },
-      string: {
-        url: i18next.t('errors.url'),
-      },
+      mixed: { required: i18next.t('messages.required') },
+      string: { url: i18next.t('messages.url') },
     });
   });
 

@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-// All Origins — прокси, обходящий CORS.
-// disableCache=true — чтобы при повторной загрузке приходил свежий поток.
 const PROXY_URL = 'https://allorigins.hexlet.app/raw';
 
 const loadRss = (url) => {

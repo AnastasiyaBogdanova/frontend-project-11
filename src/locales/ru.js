@@ -20,7 +20,9 @@ export default {
       close: 'Закрыть',
       readMore: 'Читать полностью',
     },
-    errors: {
+    messages: {
+      success: 'RSS успешно загружен',
+      duplicate: 'RSS уже существует',
       required: 'Не должно быть пустым',
       url: 'Ссылка должна быть валидным URL',
       network: 'Ошибка сети',
