@@ -12,11 +12,18 @@ const getText = (parent, localName) => {
   return el ? el.textContent.trim() : '';
 };
 
-const findAllByLocalName = (root, localName) => {
-  const byNs = root.getElementsByTagNameNS('*', localName);
-  if (byNs.length > 0) return [...byNs];
-  return [...root.getElementsByTagName(localName)];
+const getLink = (item) => {
+  const linkEl = findDirectChild(item, 'link');
+  if (!linkEl) return '';
+
+  const href = linkEl.getAttribute('href');
+  if (href) return href.trim();
+
+  return linkEl.textContent.trim();
 };
+
+const findChildrenByLocalName = (parent, localName) =>
+  [...parent.children].filter((el) => el.localName === localName);
 
 const parseRss = (xmlString) => {
   const parser = new DOMParser();
@@ -26,23 +33,41 @@ const parseRss = (xmlString) => {
     throw new Error('notRss');
   }
 
-  const channels = findAllByLocalName(doc, 'channel');
-  if (channels.length === 0) {
-    throw new Error('notRss');
+  const root = doc.documentElement;
+
+  if (root.localName === 'rss') {
+    const channel = findDirectChild(root, 'channel');
+    if (!channel) throw new Error('notRss');
+
+    const items = findChildrenByLocalName(channel, 'item');
+
+    return {
+      title: getText(channel, 'title'),
+      description: getText(channel, 'description'),
+      posts: items.map((item) => ({
+        title: getText(item, 'title'),
+        link: getLink(item),
+        description: getText(item, 'description'),
+      })),
+    };
   }
-  const channel = channels[0];
 
-  const title = getText(channel, 'title');
-  const description = getText(channel, 'description');
+  if (root.localName === 'feed') {
+    const entries = findChildrenByLocalName(root, 'entry');
 
-  const itemElements = findAllByLocalName(channel, 'item');
-  const posts = itemElements.map((item) => ({
-    title: getText(item, 'title'),
-    link: getText(item, 'link'),
-    description: getText(item, 'description'),
-  }));
+    return {
+      title: getText(root, 'title'),
+      description: getText(root, 'subtitle') || getText(root, 'description'),
+      posts: entries.map((entry) => ({
+        title: getText(entry, 'title'),
+        link: getLink(entry),
+        description:
+          getText(entry, 'summary') || getText(entry, 'content'),
+      })),
+    };
+  }
 
-  return { title, description, posts };
+  throw new Error('notRss');
 };
 
 export default parseRss;

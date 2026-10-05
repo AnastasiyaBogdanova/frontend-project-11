@@ -3,6 +3,9 @@ import * as yup from 'yup';
 import loadRss from '../services/loader.js';
 import parseRss from '../services/parser.js';
 
+const generateId = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
 const feedUrlSchema = yup.string().trim().required().url();
 
 const state = proxy({
@@ -34,7 +37,7 @@ const validateUrl = (url) => {
 
 const appendPosts = (feedId, posts) => {
   posts.forEach((post) => {
-    const postId = crypto.randomUUID();
+    const postId = generateId();
     state.posts.entities[postId] = {
       id: postId,
       feedId,
@@ -48,7 +51,7 @@ const appendPosts = (feedId, posts) => {
 };
 
 const appendFeed = (url, parsed) => {
-  const feedId = crypto.randomUUID();
+  const feedId = generateId();
   state.feeds.entities[feedId] = {
     id: feedId,
     url,
